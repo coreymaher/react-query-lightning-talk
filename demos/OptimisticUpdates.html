@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Optimistic Updates Demo | React Query</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="stylesheet" href="../plugin/highlight/github-dark.min.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <div id="layout">
+    <div id="root"></div>
+    <div id="code">
+      <pre><code class="language-javascript"></code></pre>
+    </div>
+  </div>
+
+  <script type="text/babel" data-type="module" data-presets="react" id="source-code">
+    import React from 'https://esm.sh/react@18.2.0';
+    import ReactDOM from 'https://esm.sh/react-dom@18.2.0';
+    import { QueryClient, QueryClientProvider, useQuery, useQueryClient, useMutation } from 'https://esm.sh/react-query';
+    import { ReactQueryDevtools } from 'https://esm.sh/react-query/devtools/development';
+    import hljs from 'https://esm.sh/highlight.js';
+
+    const qc = new QueryClient();
+
+    const users = [
+      {
+        id: 1,
+        name: 'Corey',
+        color: 'Orange',
+      },
+      {
+        id: 2,
+        name: 'Luke',
+        color: 'Green',
+      }
+    ];
+
+    function fetchUser(id) {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          const user = users.find((user) => user.id === id);
+          resolve({ ...user });
+        }, 2500);
+      });
+    }
+
+    function patchUser({ id, name, color, success }) {
+      return new Promise((resolve, reject) => {
+        const user = users.find((user) => user.id === id);
+
+        setTimeout(() => {
+          if (success) {
+            user.name = name;
+            user.color = color;
+
+            resolve({ ...user });
+          } else {
+            reject("Failed to update user");
+          }
+        }, 2500);
+      });
+    }
+
+    function App() {
+      const [technique, setTechnique] = React.useState('none');
+      const [selectedUser, setSelectedUser] = React.useState(null);
+
+      const handleEdit = (user) => setSelectedUser(user);
+      const handleClose = () => setSelectedUser(null);
+
+      return (
+        <div>
+          <QueryClientProvider client={qc}>
+            <h2>Optimistic Updates Demo</h2>
+            <div>
+              <select value={technique} onChange={(ev) => setTechnique(ev.target.value)}>
+                <option value="none">None</option>
+                <option value="invalidate">Invalidate</option>
+                <option value="optimistic">Optimistic</option>
+              </select>
+            </div>
+
+            <UserWidget userId={1} onEdit={handleEdit} />
+            <UserWidget userId={2} onEdit={handleEdit} />
+            {selectedUser && <EditWidget user={selectedUser} onClose={handleClose} technique={technique} />}
+            <ReactQueryDevtools initialIsOpen={false} />
+          </QueryClientProvider>
+        </div>
+      );
+    }
+
+    function UserWidget({ userId, onEdit, technique }) {
+      const { data, isLoading, isFetching } = useQuery({
+        queryKey: ['user', userId],
+        queryFn: () => fetchUser(userId),
+      });
+      const [count, setCount] = React.useState(0);
+
+      return (
+        <div className="component">
+          <div className="heading">User Widget {userId}</div>
+          <div>Name: {data?.name}</div>
+          <div>Color: {data?.color}</div>
+          <div>Loading: {isLoading ? 'yes' : 'no'}</div>
+          <div>Fetching: {isFetching ? 'yes' : 'no'}</div>
+          <button onClick={() => onEdit(data)}>Edit</button>
+        </div>
+      );
+    }
+
+    function EditWidget({ user, onClose, technique }) {
+      const [name, setName] = React.useState(user.name);
+      const [color, setColor] = React.useState(user.color);
+      const [success, setSuccess] = React.useState(true);
+
+      const queryClient = useQueryClient();
+      const updateUser = useMutation({
+        mutationFn: (data) => patchUser(data),
+        onMutate: (data) => {
+          if (technique !== 'optimistic') return;
+
+          const previousUser = queryClient.getQueryData(['user', data.id]);
+
+          const updatedUser = {
+            id: data.id,
+            name: data.name,
+            color: data.color,
+          };
+
+          queryClient.setQueryData(['user', data.id], updatedUser);
+
+          return { previousUser };
+        },
+        onSuccess: (data) => {
+          if (technique !== 'invalidate') return;
+
+          queryClient.invalidateQueries(['user', data.id]);
+        },
+        onError: (error, data, context) => {
+          if (technique !== 'optimistic') return;
+
+          if (context?.previousUser) {
+            queryClient.setQueryData(['user', data.id], context.previousUser);
+          }
+
+          queryClient.invalidateQueries(['user', data.id]);
+        }
+      });
+
+      return (
+        <div className="component">
+          <div className="heading">Edit Widget {user.id} - {technique}</div>
+          <div>Name: <input type="text" value={name} onChange={(ev) => setName(ev.target.value)} /></div>
+          <div>Color: <input type="text" value={color} onChange={(ev) => setColor(ev.target.value)} /></div>
+          <div>Success: <input type="checkbox" checked={success} onChange={(ev) => setSuccess(ev.target.checked)} /></div>
+          <div>Saving: {updateUser.isLoading ? 'yes' : 'no'}</div>
+          <div>Success: {updateUser.isSuccess ? 'yes' : 'no'}</div>
+          <div>Error: {updateUser.isError ? 'yes' : 'no'}</div>
+          <div>
+            <button onClick={() => updateUser.mutate({ id: user.id, name, color, success })}>Save</button>
+            &nbsp;
+            <button onClick={onClose}>Close</button>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+
+    const source = document.getElementById('source-code');
+    document.querySelector('#code code').textContent = source.innerText.replaceAll(/^ {4}/mg, '');
+    hljs.highlightAll();
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Cache Time Demo | React Query</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="stylesheet" href="../plugin/highlight/github-dark.min.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <div id="layout">
+    <div id="root"></div>
+    <div id="code">
+      <pre><code class="language-javascript"></code></pre>
+    </div>
+  </div>
+
+  <script type="text/babel" data-type="module" data-presets="react" id="source-code">
+    import React from 'https://esm.sh/react@18.2.0';
+    import ReactDOM from 'https://esm.sh/react-dom@18.2.0';
+    import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from 'https://esm.sh/react-query';
+    import { ReactQueryDevtools } from 'https://esm.sh/react-query/devtools/development';
+    import hljs from 'https://esm.sh/highlight.js';
+
+    const qc = new QueryClient();
+
+    function api() {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          resolve(Math.round(Math.random() * 100));
+        }, 2500);
+      });
+    }
+
+    function App() {
+      const [enabled, setEnabled] = React.useState(true);
+
+      return (
+        <div>
+          <QueryClientProvider client={qc}>
+            <h2>Cache Time Demo</h2>
+            <div>
+              <button onClick={() => setEnabled(true)}>Mount</button>
+              &nbsp;
+              <button onClick={() => setEnabled(false)}>Unmount</button>
+            </div>
+            {enabled && <DataWidget name={1} />}
+            <ReactQueryDevtools initialIsOpen={false} />
+          </QueryClientProvider>
+        </div>
+      );
+    }
+
+    function DataWidget({ name }) {
+      const { data, isLoading, isFetching } = useQuery({
+        queryKey: ['data', name],
+        queryFn: api,
+        cacheTime: 10 * 1000,
+      });
+      const [count, setCount] = React.useState(0);
+
+      return (
+        <div className="component">
+          <div className="heading">Data Widget {name}</div>
+          <div>Data: {data}</div>
+          <div>Loading: {isLoading ? 'yes' : 'no'}</div>
+          <div>Fetching: {isFetching ? 'yes' : 'no'}</div>
+          <div>Count: {count} <button onClick={() => setCount(count + 1)}>+</button></div>
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+
+    const source = document.getElementById('source-code');
+    document.querySelector('#code code').textContent = source.innerText.replaceAll(/^ {4}/mg, '');
+    hljs.highlightAll();
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,63 @@
+html,
+body {
+	height: 100vh;
+}
+
+body {
+	background-color: #191919;
+	color: #FFFFFF;
+	font-size: 32px;
+	margin: 0;
+}
+
+#root {
+	padding: 0.5em;
+}
+
+#layout {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	column-gap: 1em;
+	height: 100%;
+}
+
+#layout>div {
+	max-height: 100vh;
+	overflow-y: auto;
+}
+
+#code {
+	font-size: 16px;
+}
+
+.component {
+	margin-bottom: 0.25em;
+	border: 1px solid gray;
+	padding: 0.25em;
+}
+
+.component:last-of-type {
+	margin-bottom: 2em;
+}
+
+h2 {
+	margin-top: 0;
+	margin-bottom: 0.25em;
+}
+
+.heading {
+	border-bottom: 1px solid gray;
+	font-weight: bold;
+}
+
+a {
+	color: #FFFFFF;
+}
+
+a:visited {
+	color: #FFFFFF;
+}
+
+pre {
+	margin: 0;
+}

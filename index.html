@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <title>React Query</title>
+
+  <link rel="stylesheet" href="dist/reset.css">
+  <link rel="stylesheet" href="dist/reveal.css">
+  <link rel="stylesheet" href="dist/theme/black.css">
+
+  <!-- Theme used for syntax highlighted code -->
+  <link rel="stylesheet" href="plugin/highlight/github-dark.min.css" />
+</head>
+
+<body>
+  <div class="reveal">
+    <div class="slides">
+      <section>
+        <h1 style="text-transform: none;">React Query</h1>
+        <p><small>Corey Maher - November 2023</small></p>
+      </section>
+
+      <section data-background-iframe="https://tanstack.com/query/latest" data-background-interactive></section>
+
+      <section>
+        <section>
+          <h1>Query Keys</h1>
+          <ul>
+            <li>Uniquely describe the data they are fetching</li>
+            <li>Strings</li>
+            <li>Arrays</li>
+          </ul>
+        </section>
+
+        <section>
+          <h1>Strings</h1>
+          <ul>
+            <li>Useful for generic resources</li>
+            <li>Internally converted to an array</li>
+          </ul>
+
+          <pre><code class="hljs javascript" data-trim data-line-numbers>
+            useQuery({ queryKey: 'meetings', ... })
+            // useQuery({ queryKey: ['meetings'], ... })
+          </code></pre>
+        </section>
+
+        <section>
+          <h1>Arrays</h1>
+          <ul>
+            <li>Queries with additional parameters</li>
+            <li>Treat like a dependency array</li>
+          </ul>
+
+          <pre><code class="hljs javascript" data-trim data-line-numbers>
+            useQuery({ queryKey: ['meetings', meetingId], ... })
+            useQuery({ queryKey: [
+              'meetings', 
+              { filters: { status: 'upcoming' } }
+            ], ... })
+					</code></pre>
+
+        </section>
+      </section>
+
+      <section>
+        <section>
+          <h1>Fetching</h1>
+          <p>When data is stale, fetches occur automatically on</p>
+          <ul>
+            <li>Mount</li>
+            <li>Window Focus</li>
+            <li>Reconnect</li>
+          </ul>
+        </section>
+
+        <section>
+          <h1>Stale queries</h1>
+          <ul>
+            <li>staleTime parameter on useQuery</li>
+            <li>Milliseconds</li>
+            <li>Defaults to 0</li>
+          </ul>
+        </section>
+
+        <section>
+          <h1>Stale queries</h1>
+
+          <pre><code class="hljs javascript" data-trim data-line-numbers>
+            useQuery(['meetings', meetingId], queryFn: fetchMeeting, {
+              staleTime: 5 * 60 * 1000 // 5 minutes
+            })
+          </code></pre>
+        </section>
+
+        <section data-background-iframe="demos/StaleTime.html" data-background-interactive></section>
+      </section>
+
+      <section>
+        <section>
+          <h1>Manual Refetching</h1>
+          <ul>
+            <li>refetch function</li>
+            <li>QueryClient.invalidateQueries</li>
+          </ul>
+        </section>
+
+        <section data-background-iframe="demos/ManualRefetch.html" data-background-interactive></section>
+      </section>
+
+      <section>
+        <section>
+          <h1>cacheTime / gcTime</h1>
+          <ul>
+            <li>Time that unused/inactive data remains in memory</li>
+            <li>Milliseconds</li>
+            <li>Defaults to 5 minutes</li>
+          </ul>
+        </section>
+
+        <section data-background-iframe="demos/CacheTime.html" data-background-interactive></section>
+      </section>
+
+      <section>
+        <section>
+          <h1>Optimistic Updates</h1>
+          <ul>
+            <li>Update query data while API request is loading</li>
+            <li>useMutation: onMutate / onSuccess / onError</li>
+            <li>QueryClient: getQueryData / setQueryData / invalidateQueries</li>
+          </ul>
+        </section>
+
+        <section data-background-iframe="demos/OptimisticUpdates.html" data-background-interactive></section>
+      </section>
+
+      <section>
+        <section>
+          <h1>Query Key Factories</h1>
+          <ul>
+            <li>Ensure you use the same query key everywhere</li>
+            <li>Easier to support multiple key invalidations</li>
+          </ul>
+
+          <pre><code class="hljs javascript" data-trim data-line-numbers>
+            queryKey: ['meetings', 1]
+            queryKey: ['meeting', 1]
+            queryKey: 'meetings-1'
+          </code></pre>
+        </section>
+
+        <section>
+          <pre><code class="hljs javascript" data-trim data-line-numbers>
+            const meetingKeys = {
+              all: () => ['meetings'] as const,
+              list: (filters) => [...meetingKeys.all, { filters }] as const,
+              details: () => [...meetingKeys.all, 'detail'] as const,
+              detail: (id) => [...meetingKeys.details(), id] as const,
+            } as const;
+          </code></pre>
+
+          <pre><code class="hljs javascript" data-trim data-line-numbers>
+            useQuery({ queryKey: meetingKeys.list({ status: 'upcoming' }), ... })
+
+            useQuery({ queryKey: meetingKeys.detail(42), ... })
+
+            queryClient.invalidateQueries(meetingKeys.detail(42))
+          </code></pre>
+        </section>
+      </section>
+
+      <section>
+        <h1>Resources</h1>
+        <ul>
+          <li>Docs: <a href="https://tanstack.com/query/latest" target="_blank">https://tanstack.com/query/latest</a>
+          </li>
+          <li>TkDodo's Blog: <a href="https://tkdodo.eu/blog/practical-react-query"
+              target="_blank">https://tkdodo.eu/blog/practical-react-query</a></li>
+        </ul>
+      </section>
+    </div>
+  </div>
+
+  <script src="dist/reveal.js"></script>
+  <script src="plugin/notes/notes.js"></script>
+  <script src="plugin/markdown/markdown.js"></script>
+  <script src="plugin/highlight/highlight.js"></script>
+  <script>
+    if (window.location.search.includes('print-pdf')) {
+      document.querySelectorAll('section[data-background-iframe]').forEach((el) => { console.log(el); el.remove() });
+    }
+
+    // More info about initialization & config:
+    // - https://revealjs.com/initialization/
+    // - https://revealjs.com/config/
+    Reveal.initialize({
+      hash: true,
+
+      // Learn about plugins: https://revealjs.com/plugins/
+      plugins: [RevealMarkdown, RevealHighlight, RevealNotes]
+    });
+  </script>
+</body>
+
+</html>

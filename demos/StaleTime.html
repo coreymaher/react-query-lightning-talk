@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Stale Time Demo | React Query</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="stylesheet" href="../plugin/highlight/github-dark.min.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <div id="layout">
+    <div id="root"></div>
+    <div id="code">
+      <pre><code class="language-javascript"></code></pre>
+    </div>
+  </div>
+
+  <!-- TODO: Switch highlight.js to local copy -->
+  <script type="text/babel" data-type="module" data-presets="react" id="source-code">
+    import React from 'https://esm.sh/react@18.2.0';
+    import ReactDOM from 'https://esm.sh/react-dom@18.2.0';
+    import { QueryClient, QueryClientProvider, useQuery } from 'https://esm.sh/react-query';
+    import { ReactQueryDevtools } from 'https://esm.sh/react-query/devtools/development';
+    import hljs from 'https://esm.sh/highlight.js';
+
+    const queryClient = new QueryClient();
+
+    function api() {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          resolve(Math.round(Math.random() * 100));
+        }, 2500);
+      });
+    }
+
+    function App() {
+      const [page, setPage] = React.useState('noStaleTime');
+      return (
+        <div>
+          <QueryClientProvider client={queryClient}>
+            <h2>StaleTime Demo</h2>
+            <a href="#" onClick={() => setPage('noStaleTime') && false}>No Stale Time</a> | <a href="#" onClick={() => setPage('staleTime') && false}>Stale Time</a>
+            {page === 'noStaleTime' && <NoStaleTime />}
+            {page === 'staleTime' && <StaleTime />}
+            <ReactQueryDevtools initialIsOpen={false} />
+          </QueryClientProvider>
+        </div>
+      );
+    }
+
+    function NoStaleTime() {
+      return (
+        <div>
+          <div>Stale Time: 0 Seconds</div>
+          <br />
+          <DataWidget name={1} staleTime={0} />
+          <DataWidget name={2} staleTime={0} />
+        </div>
+      );
+    }
+
+    function StaleTime() {
+      return (
+        <div>
+          <div>Stale Time: 10 Seconds</div>
+          <br />
+          <DataWidget name={1} staleTime={10000} />
+          <DataWidget name={2} staleTime={10000} />
+        </div>
+      );
+    }
+
+    function DataWidget({ name, staleTime }) {
+      const { data, isLoading, isFetching } = useQuery({
+        queryKey: ['data'],
+        queryFn: api,
+        staleTime: staleTime,
+        cacheTime: 0,
+      });
+      const [count, setCount] = React.useState(0);
+
+      return (
+        <div className="component">
+          <div className="heading">Data Widget {name}</div>
+          <div>Data: {data}</div>
+          <div>Loading: {isLoading ? 'yes' : 'no'}</div>
+          <div>Fetching: {isFetching ? 'yes' : 'no'}</div>
+          <div>Count: {count} <button onClick={() => setCount(count + 1)}>+</button></div>
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+
+    const source = document.getElementById('source-code');
+    document.querySelector('#code code').textContent = source.innerText.replaceAll(/^ {4}/mg, '');
+    hljs.highlightAll();
+  </script>
+</body>
+
+</html>
